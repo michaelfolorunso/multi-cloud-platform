@@ -1,6 +1,5 @@
-# GCP VPC Network for NexCloud
-# This creates our private network where all resources will live
-# Custom mode gives us full control over subnets
+# Custom mode VPC — auto subnets disabled so we control IP ranges
+# All NexCloud resources live here, nothing exposed to public internet by default
 
 resource "google_compute_network" "nexcloud_vpc" {
   name                    = "nexcloud-vpc-${var.environment}"
