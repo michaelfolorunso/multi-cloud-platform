@@ -26,3 +26,20 @@ resource "google_compute_subnetwork" "gke_subnet" {
     ip_cidr_range = "10.52.0.0/20"
   }
 }
+
+# reserve a block of IPs for Google's managed services to use
+resource "google_compute_global_address" "private_ip_range" {
+  name          = "nexcloud-private-ip-range"
+  purpose       = "VPC_PEERING"
+  address_type  = "INTERNAL"
+  prefix_length = 16
+  network       = google_compute_network.nexcloud_vpc.id
+}
+
+# the actual private connection between our VPC and Google services
+# for a private IP in our network to be used by Google services
+resource "google_service_networking_connection" "private_vpc_connection" {
+  network                 = google_compute_network.nexcloud_vpc.id
+  service                 = "servicenetworking.googleapis.com"
+  reserved_peering_ranges = [google_compute_global_address.private_ip_range.name]
+}

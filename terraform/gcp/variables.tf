@@ -23,3 +23,9 @@ variable "environment" {
   type        = string
   default     = "dev"
 }
+
+variable "db_password" {
+  description = "nexcloud app db password — set this in tfvars, never hardcode"
+  type        = string
+  sensitive   = true
+}
