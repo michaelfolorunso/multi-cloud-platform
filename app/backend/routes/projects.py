@@ -11,7 +11,7 @@ from schemas import ProjectCreate, ProjectResponse, ProjectWithTasks
 
 router = APIRouter(prefix="/projects", tags=["projects"])
 
-# redis connection — app still works if redis is down
+# redis connection, app still works if redis is down
 REDIS_URL = os.getenv("REDIS_URL", "redis://localhost:6379")
 try:
     cache = redis.from_url(REDIS_URL, decode_responses=True)
@@ -36,7 +36,7 @@ def create_project(project: ProjectCreate, db: Session = Depends(get_db)):
 
 @router.get("", response_model=List[ProjectResponse])
 def get_projects(db: Session = Depends(get_db)):
-    # hit cache first — saves a db round trip on every request
+    # hit cache first, saves a db round trip on every request
     if cache:
         cached = cache.get("projects:all")
         if cached:
@@ -58,4 +58,22 @@ def get_projects(db: Session = Depends(get_db)):
     return projects
 
 
-@router.get("/{project_id}", respon
+@router.get("/{project_id}", response_model=ProjectWithTasks)
+def get_project(project_id: int, db: Session = Depends(get_db)):
+    project = db.query(Project).filter(Project.id == project_id).first()
+    if not project:
+        raise HTTPException(status_code=404, detail="Project not found")
+    return project
+
+
+@router.delete("/{project_id}", status_code=204)
+def delete_project(project_id: int, db: Session = Depends(get_db)):
+    project = db.query(Project).filter(Project.id == project_id).first()
+    if not project:
+        raise HTTPException(status_code=404, detail="Project not found")
+
+    db.delete(project)
+    db.commit()
+
+    if cache:
+        cache.delete("projects:all")
