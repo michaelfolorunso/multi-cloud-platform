@@ -11,7 +11,7 @@ resource "aws_db_subnet_group" "nexcloud" {
 resource "aws_db_instance" "nexcloud_db" {
   identifier        = "${var.project_name}-db-${var.environment}"
   engine            = "postgres"
-  engine_version    = "15.12"
+  engine_version    = "15.17"
   instance_class    = "db.t3.micro"
   allocated_storage = 20
 
