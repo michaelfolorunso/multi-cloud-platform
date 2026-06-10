@@ -1,0 +1,9 @@
+# non-sensitive config shared across all services
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: nexcloud-config
+  namespace: default
+data:
+  REDIS_URL: "redis://redis-service:6379"
+  ENVIRONMENT: "dev"
