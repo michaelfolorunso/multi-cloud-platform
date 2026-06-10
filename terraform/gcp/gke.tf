@@ -4,6 +4,7 @@
 resource "google_container_cluster" "nexcloud_gke" {
   name     = "nexcloud-gke-${var.environment}"
   location = var.region
+  deletion_protection = false
 
   network    = google_compute_network.nexcloud_vpc.name
   subnetwork = google_compute_subnetwork.gke_subnet.name
