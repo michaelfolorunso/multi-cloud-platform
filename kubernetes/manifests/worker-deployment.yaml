@@ -17,7 +17,7 @@ spec:
     spec:
       containers:
         - name: worker
-          image: worker:latest
+          image: us-central1-docker.pkg.dev/nexcloud-platform/nexcloud/worker:latest
           env:
             - name: REDIS_URL
               valueFrom:

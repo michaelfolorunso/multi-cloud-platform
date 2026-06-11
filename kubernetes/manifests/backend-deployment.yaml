@@ -17,7 +17,7 @@ spec:
     spec:
       containers:
         - name: backend
-          image: backend:latest
+          image: us-central1-docker.pkg.dev/nexcloud-platform/nexcloud/backend:latest
           ports:
             - containerPort: 8000
           env:
