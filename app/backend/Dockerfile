@@ -18,4 +18,4 @@ RUN adduser --disabled-password --gecos "" appuser
 USER appuser
 
 # 0.0.0.0 is required, without it kubernetes cant route traffic to the pod
-CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]
+CMD ["python", "-u", "-m", "uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]
