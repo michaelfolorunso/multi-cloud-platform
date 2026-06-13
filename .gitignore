@@ -6,3 +6,4 @@ terraform/aws/terraform.tfvars
 terraform/aws/.terraform/
 terraform/aws/*.tfstate
 terraform/aws/*.tfstate.backup
+*.json
