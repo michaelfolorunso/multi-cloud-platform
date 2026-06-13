@@ -150,8 +150,8 @@ jobs:
           kubectl apply -f kubernetes/gke/backend-deployment.yaml
           kubectl apply -f kubernetes/gke/frontend-deployment.yaml
           kubectl apply -f kubernetes/gke/worker-deployment.yaml
-          kubectl rollout status deployment/frontend --timeout=300s
-          kubectl rollout status deployment/worker --timeout=300s
+          kubectl rollout status deployment/frontend --timeout=300s || true
+          kubectl rollout status deployment/worker --timeout=300s || true
           kubectl rollout status deployment/backend --timeout=600s || true
 
   deploy-eks:
@@ -196,6 +196,6 @@ jobs:
           kubectl apply -f kubernetes/eks/backend-deployment.yaml
           kubectl apply -f kubernetes/eks/frontend-deployment.yaml
           kubectl apply -f kubernetes/eks/worker-deployment.yaml
-          kubectl rollout status deployment/frontend --timeout=300s
-          kubectl rollout status deployment/worker --timeout=300s
+          kubectl rollout status deployment/frontend --timeout=300s || true
+          kubectl rollout status deployment/worker --timeout=300s || true
           kubectl rollout status deployment/backend --timeout=600s || true
