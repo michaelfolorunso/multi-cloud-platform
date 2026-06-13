@@ -91,6 +91,12 @@ jobs:
           location: ${{ env.GCP_REGION }}
           project_id: ${{ env.GCP_PROJECT }}
 
+      - name: Create Kubernetes secrets GKE
+        run: |
+          kubectl create secret generic nexcloud-secrets \
+            --from-literal=DATABASE_URL=${{ secrets.GKE_DATABASE_URL }} \
+            --dry-run=client -o yaml | kubectl apply -f -
+
       - name: Update image tags in GKE manifests
         run: |
           sed -i "s|nexcloud/backend:latest|nexcloud/backend:${{ env.IMAGE_TAG }}|g" kubernetes/gke/backend-deployment.yaml
@@ -105,9 +111,9 @@ jobs:
           kubectl apply -f kubernetes/gke/backend-deployment.yaml
           kubectl apply -f kubernetes/gke/frontend-deployment.yaml
           kubectl apply -f kubernetes/gke/worker-deployment.yaml
-          kubectl rollout status deployment/backend
-          kubectl rollout status deployment/frontend
-          kubectl rollout status deployment/worker
+          kubectl rollout status deployment/backend --timeout=300s
+          kubectl rollout status deployment/frontend --timeout=300s
+          kubectl rollout status deployment/worker --timeout=300s
 
   deploy-eks:
     name: Deploy to EKS
@@ -131,6 +137,12 @@ jobs:
             --region ${{ env.AWS_REGION }} \
             --name nexcloud-eks-dev
 
+      - name: Create Kubernetes secrets EKS
+        run: |
+          kubectl create secret generic nexcloud-secrets \
+            --from-literal=DATABASE_URL=${{ secrets.EKS_DATABASE_URL }} \
+            --dry-run=client -o yaml | kubectl apply -f -
+
       - name: Update image tags in EKS manifests
         run: |
           sed -i "s|nexcloud-backend:latest|nexcloud-backend:${{ env.IMAGE_TAG }}|g" kubernetes/eks/backend-deployment.yaml
@@ -145,6 +157,6 @@ jobs:
           kubectl apply -f kubernetes/eks/backend-deployment.yaml
           kubectl apply -f kubernetes/eks/frontend-deployment.yaml
           kubectl apply -f kubernetes/eks/worker-deployment.yaml
-          kubectl rollout status deployment/backend
-          kubectl rollout status deployment/frontend
-          kubectl rollout status deployment/worker
+          kubectl rollout status deployment/backend --timeout=300s
+          kubectl rollout status deployment/frontend --timeout=300s
+          kubectl rollout status deployment/worker --timeout=300s
