@@ -1,0 +1,76 @@
+name: Infrastructure Schedule
+
+on:
+  schedule:
+    - cron: '0 5 * * *'
+    - cron: '0 13 * * *'
+  workflow_dispatch:
+    inputs:
+      action:
+        description: 'Action to perform'
+        required: true
+        type: choice
+        options:
+          - apply
+          - destroy
+
+jobs:
+  terraform-gcp:
+    name: Terraform GCP
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Authenticate to GCP
+        uses: google-github-actions/auth@v2
+        with:
+          credentials_json: ${{ secrets.GCP_SA_KEY }}
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+
+      - name: Terraform Init GCP
+        working-directory: terraform/gcp
+        run: terraform init
+
+      - name: Terraform Apply or Destroy GCP
+        working-directory: terraform/gcp
+        run: |
+          if [[ "${{ github.event.schedule }}" == "0 5 * * *" ]] || [[ "${{ github.event.inputs.action }}" == "destroy" ]]; then
+            terraform destroy -var-file="terraform.tfvars" -auto-approve
+          else
+            terraform apply -var-file="terraform.tfvars" -auto-approve
+          fi
+
+  terraform-aws:
+    name: Terraform AWS
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: us-east-1
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+
+      - name: Terraform Init AWS
+        working-directory: terraform/aws
+        run: terraform init
+
+      - name: Terraform Apply or Destroy AWS
+        working-directory: terraform/aws
+        run: |
+          if [[ "${{ github.event.schedule }}" == "0 5 * * *" ]] || [[ "${{ github.event.inputs.action }}" == "destroy" ]]; then
+            terraform destroy -var-file="terraform.tfvars" -auto-approve
+          else
+            terraform apply -var-file="terraform.tfvars" -auto-approve
+          fi
