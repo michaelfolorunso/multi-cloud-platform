@@ -111,9 +111,9 @@ jobs:
           kubectl apply -f kubernetes/gke/backend-deployment.yaml
           kubectl apply -f kubernetes/gke/frontend-deployment.yaml
           kubectl apply -f kubernetes/gke/worker-deployment.yaml
-          kubectl rollout status deployment/backend --timeout=300s
-          kubectl rollout status deployment/frontend --timeout=300s
-          kubectl rollout status deployment/worker --timeout=300s
+          kubectl rollout status deployment/backend --timeout=600s
+          kubectl rollout status deployment/frontend --timeout=600s
+          kubectl rollout status deployment/worker --timeout=600s
 
   deploy-eks:
     name: Deploy to EKS
