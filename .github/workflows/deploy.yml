@@ -13,9 +13,32 @@ env:
   IMAGE_TAG: ${{ github.sha }}
 
 jobs:
+  detect-changes:
+    name: Detect changed services
+    runs-on: ubuntu-latest
+    outputs:
+      backend: ${{ steps.changes.outputs.backend }}
+      frontend: ${{ steps.changes.outputs.frontend }}
+      worker: ${{ steps.changes.outputs.worker }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+
+      - name: Check which services changed
+        id: changes
+        run: |
+          echo "backend=$(git diff --name-only HEAD~1 HEAD | grep -c 'app/backend' || echo 0)" >> $GITHUB_OUTPUT
+          echo "frontend=$(git diff --name-only HEAD~1 HEAD | grep -c 'app/frontend' || echo 0)" >> $GITHUB_OUTPUT
+          echo "worker=$(git diff --name-only HEAD~1 HEAD | grep -c 'app/worker' || echo 0)" >> $GITHUB_OUTPUT
+          git diff --name-only HEAD~1 HEAD
+
   build-and-push:
     name: Build and push images
     runs-on: ubuntu-latest
+    needs: detect-changes
 
     steps:
       - name: Checkout code
@@ -40,9 +63,15 @@ jobs:
       - name: Configure Docker for GCP Artifact Registry
         run: gcloud auth configure-docker ${{ env.GCP_REGION }}-docker.pkg.dev --quiet
 
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
       - name: Build and push backend
+        if: needs.detect-changes.outputs.backend != '0'
         run: |
           docker buildx build --platform linux/amd64 \
+            --cache-from ${{ steps.login-ecr.outputs.registry }}/nexcloud-backend:latest \
+            --cache-to type=inline \
             -t ${{ steps.login-ecr.outputs.registry }}/nexcloud-backend:${{ env.IMAGE_TAG }} \
             -t ${{ steps.login-ecr.outputs.registry }}/nexcloud-backend:latest \
             -t ${{ env.GCP_REGION }}-docker.pkg.dev/${{ env.GCP_PROJECT }}/nexcloud/backend:${{ env.IMAGE_TAG }} \
@@ -51,8 +80,11 @@ jobs:
             app/backend
 
       - name: Build and push frontend
+        if: needs.detect-changes.outputs.frontend != '0'
         run: |
           docker buildx build --platform linux/amd64 \
+            --cache-from ${{ steps.login-ecr.outputs.registry }}/nexcloud-frontend:latest \
+            --cache-to type=inline \
             -t ${{ steps.login-ecr.outputs.registry }}/nexcloud-frontend:${{ env.IMAGE_TAG }} \
             -t ${{ steps.login-ecr.outputs.registry }}/nexcloud-frontend:latest \
             -t ${{ env.GCP_REGION }}-docker.pkg.dev/${{ env.GCP_PROJECT }}/nexcloud/frontend:${{ env.IMAGE_TAG }} \
@@ -61,8 +93,11 @@ jobs:
             app/frontend
 
       - name: Build and push worker
+        if: needs.detect-changes.outputs.worker != '0'
         run: |
           docker buildx build --platform linux/amd64 \
+            --cache-from ${{ steps.login-ecr.outputs.registry }}/nexcloud-worker:latest \
+            --cache-to type=inline \
             -t ${{ steps.login-ecr.outputs.registry }}/nexcloud-worker:${{ env.IMAGE_TAG }} \
             -t ${{ steps.login-ecr.outputs.registry }}/nexcloud-worker:latest \
             -t ${{ env.GCP_REGION }}-docker.pkg.dev/${{ env.GCP_PROJECT }}/nexcloud/worker:${{ env.IMAGE_TAG }} \
