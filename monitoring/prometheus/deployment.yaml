@@ -17,18 +17,15 @@ data:
       scrape_interval: 15s
       evaluation_interval: 15s
 
-    # Tell Prometheus where Alertmanager lives so it can forward firing alerts.
-    # Without this block, alert rules evaluate but notifications never go anywhere.
     alerting:
       alertmanagers:
         - static_configs:
             - targets: ['alertmanager-service:9093']
 
-    # Load alert rules from a separate file mounted via the alert-rules ConfigMap.
-    # Keeping rules separate from scrape config makes both easier to maintain —
-    # you can update alert thresholds without touching service discovery config.
+    # Rules are mounted into /etc/prometheus/rules/ as a separate volume
+    # to avoid the subPath file-vs-directory conflict on GKE
     rule_files:
-      - "/etc/prometheus/alert-rules.yml"
+      - "/etc/prometheus/rules/*.yml"
 
     scrape_configs:
       - job_name: 'prometheus'
@@ -144,13 +141,10 @@ spec:
           volumeMounts:
             - name: prometheus-config
               mountPath: /etc/prometheus
-            # Alert rules mount into the same directory as prometheus.yml
-            # so the rule_files glob resolves correctly
+            # Alert rules go into their own subdirectory — avoids the
+            # subPath file-vs-directory mount conflict on GKE
             - name: alert-rules
-              mountPath: /etc/prometheus/alert-rules.yml
-              subPath: alert-rules.yml
-            - name: prometheus-storage
-              mountPath: /prometheus
+              mountPath: /etc/prometheus/rules
           resources:
             requests:
               memory: "256Mi"
@@ -174,14 +168,9 @@ spec:
         - name: prometheus-config
           configMap:
             name: prometheus-config
-        # subPath mount lets us place alert-rules.yml alongside prometheus.yml
-        # without overwriting the entire /etc/prometheus directory
         - name: alert-rules
           configMap:
             name: prometheus-alert-rules
-            items:
-              - key: alert-rules.yml
-                path: alert-rules.yml
         - name: prometheus-storage
           emptyDir: {}
 
