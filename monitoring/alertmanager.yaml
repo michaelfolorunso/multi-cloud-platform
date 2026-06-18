@@ -1,0 +1,154 @@
+# Alertmanager handles routing, grouping, and deduplication of alerts.
+# Prometheus evaluates the rules — Alertmanager decides who gets notified and how.
+# Keeping them separate means you can silence, route, and deduplicate
+# without touching your metrics infrastructure at all.
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: monitoring
+
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: alertmanager-config
+  namespace: monitoring
+type: Opaque
+stringData:
+  alertmanager.yml: |
+    global:
+      # How long to wait before re-sending an alert that hasn't resolved.
+      # 4 hours prevents repeated pages for known ongoing incidents.
+      repeat_interval: 4h
+      resolve_timeout: 5m
+
+    # Grouping is the most important Alertmanager concept.
+    # During an incident, 40 pods might all fire the same alert simultaneously.
+    # group_by collapses them into a single notification per unique combination
+    # of alertname + namespace, so the on-call gets 1 message not 40.
+    route:
+      group_by: ['alertname', 'namespace']
+      group_wait: 30s
+      group_interval: 5m
+      repeat_interval: 4h
+      receiver: 'slack-notifications'
+      routes:
+        # Critical alerts get their own route with shorter group_wait
+        # so they page faster than warnings
+        - match:
+            severity: critical
+          receiver: 'slack-notifications'
+          group_wait: 10s
+          repeat_interval: 1h
+
+        - match:
+            severity: warning
+          receiver: 'slack-notifications'
+          group_wait: 30s
+          repeat_interval: 4h
+
+    receivers:
+      - name: 'slack-notifications'
+        slack_configs:
+          - api_url: 'YOUR_SLACK_WEBHOOK_URL'
+            channel: '#nexcloud-alerts'
+            # send_resolved notifies the channel when the condition clears —
+            # without this your team never knows when an incident is over
+            send_resolved: true
+            title: '{{ if eq .Status "firing" }}🔴{{ else }}✅{{ end }} {{ .GroupLabels.alertname }}'
+            text: |
+              {{ range .Alerts }}
+              *Severity:* {{ .Labels.severity }}
+              *Summary:* {{ .Annotations.summary }}
+              *Description:* {{ .Annotations.description }}
+              {{ end }}
+
+    # Inhibition rules prevent notification storms — if a node is down,
+    # suppress all pod alerts from that node since they're a symptom not a cause.
+    # Alert the cause (NodeNotReady), silence the symptoms (PodCrashLooping on that node).
+    inhibit_rules:
+      - source_match:
+          alertname: 'NodeNotReady'
+          severity: 'critical'
+        target_match:
+          severity: 'warning'
+        equal: ['node']
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: alertmanager
+  namespace: monitoring
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: alertmanager
+  template:
+    metadata:
+      labels:
+        app: alertmanager
+    spec:
+      containers:
+        - name: alertmanager
+          image: prom/alertmanager:v0.27.0
+          args:
+            - "--config.file=/etc/alertmanager/alertmanager.yml"
+            - "--storage.path=/alertmanager"
+            # Mesh clustering for HA — if you run multiple replicas they
+            # coordinate through gossip protocol to avoid duplicate notifications
+            - "--cluster.listen-address=0.0.0.0:9094"
+          ports:
+            - containerPort: 9093
+              name: http
+            - containerPort: 9094
+              name: cluster
+          volumeMounts:
+            - name: alertmanager-config
+              mountPath: /etc/alertmanager
+              readOnly: true
+            - name: alertmanager-storage
+              mountPath: /alertmanager
+          resources:
+            requests:
+              memory: "64Mi"
+              cpu: "50m"
+            limits:
+              memory: "128Mi"
+              cpu: "100m"
+          readinessProbe:
+            httpGet:
+              path: /-/ready
+              port: 9093
+            initialDelaySeconds: 10
+            timeoutSeconds: 5
+          livenessProbe:
+            httpGet:
+              path: /-/healthy
+              port: 9093
+            initialDelaySeconds: 20
+            timeoutSeconds: 10
+      volumes:
+        - name: alertmanager-config
+          secret:
+            secretName: alertmanager-config
+        - name: alertmanager-storage
+          emptyDir: {}
+
+---
+# ClusterIP only — Alertmanager UI contains active alert state and silence controls.
+# Never expose this publicly. Use kubectl port-forward to access it for debugging.
+apiVersion: v1
+kind: Service
+metadata:
+  name: alertmanager-service
+  namespace: monitoring
+spec:
+  selector:
+    app: alertmanager
+  ports:
+    - port: 9093
+      targetPort: 9093
+      name: http
+  type: ClusterIP

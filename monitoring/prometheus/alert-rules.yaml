@@ -1,0 +1,87 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: prometheus-alert-rules
+  namespace: monitoring
+data:
+  alert-rules.yml: |
+    groups:
+      - name: nexcloud.application
+        # Evaluate these rules every 30s — shorter intervals catch issues faster
+        # but increase Prometheus CPU load. 30s is the standard production balance.
+        interval: 30s
+        rules:
+
+          # A pod crash-looping is the most common Kubernetes failure mode.
+          # We wait 5 minutes before alerting to avoid noise from normal
+          # rolling deployments where pods briefly restart.
+          - alert: PodCrashLooping
+            expr: rate(kube_pod_container_status_restarts_total[5m]) * 60 > 0
+            for: 5m
+            labels:
+              severity: critical
+            annotations:
+              summary: "Pod {{ $labels.pod }} is crash-looping"
+              description: "{{ $labels.pod }} in namespace {{ $labels.namespace }} has restarted more than once in the last 5 minutes."
+
+          # High error rate on the backend — 5xx responses exceeding 5% of traffic
+          # is our SLO breach threshold. Adjust the threshold based on your
+          # error budget once you define SLOs formally.
+          - alert: HighErrorRate
+            expr: rate(http_requests_total{status=~"5.."}[5m]) / rate(http_requests_total[5m]) > 0.05
+            for: 2m
+            labels:
+              severity: critical
+            annotations:
+              summary: "High HTTP error rate on {{ $labels.job }}"
+              description: "Error rate is {{ $value | humanizePercentage }} over the last 5 minutes."
+
+          # Memory pressure at 85% — gives the on-call engineer time to act
+          # before the OOMKiller starts terminating pods at 100%
+          - alert: HighMemoryUsage
+            expr: container_memory_working_set_bytes / container_spec_memory_limit_bytes > 0.85
+            for: 5m
+            labels:
+              severity: warning
+            annotations:
+              summary: "High memory usage in {{ $labels.pod }}"
+              description: "{{ $labels.pod }} is using {{ $value | humanizePercentage }} of its memory limit."
+
+          # CPU throttling means the container is hitting its CPU limit and
+          # requests are queuing. Different from high CPU usage — a container
+          # can be throttled even at 50% if bursts exceed the limit.
+          - alert: CPUThrottling
+            expr: rate(container_cpu_throttled_seconds_total[5m]) > 0.25
+            for: 5m
+            labels:
+              severity: warning
+            annotations:
+              summary: "CPU throttling on {{ $labels.pod }}"
+              description: "{{ $labels.pod }} is being CPU throttled — consider raising the CPU limit."
+
+      - name: nexcloud.infrastructure
+        interval: 60s
+        rules:
+
+          # A node being NotReady means all pods on it are effectively unreachable.
+          # 2 minute threshold filters out transient network blips during
+          # node upgrades without hiding real failures.
+          - alert: NodeNotReady
+            expr: kube_node_status_condition{condition="Ready",status="true"} == 0
+            for: 2m
+            labels:
+              severity: critical
+            annotations:
+              summary: "Node {{ $labels.node }} is not ready"
+              description: "Node {{ $labels.node }} has been NotReady for more than 2 minutes."
+
+          # Persistent volume filling up — storage issues cause silent data loss
+          # and are easy to miss until it's too late. 80% gives time to expand.
+          - alert: PersistentVolumeFillingUp
+            expr: kubelet_volume_stats_available_bytes / kubelet_volume_stats_capacity_bytes < 0.20
+            for: 5m
+            labels:
+              severity: warning
+            annotations:
+              summary: "PersistentVolume {{ $labels.persistentvolumeclaim }} is filling up"
+              description: "Less than 20% space remaining on {{ $labels.persistentvolumeclaim }}."
