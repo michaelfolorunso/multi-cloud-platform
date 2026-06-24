@@ -59,6 +59,8 @@ resource "aws_iam_role_policy_attachment" "eks_ecr_policy" {
 }
 
 # the actual EKS cluster
+# endpoint_public_access left open for dev convenience —
+# production would restrict this to a VPN CIDR or bastion IP
 resource "aws_eks_cluster" "nexcloud_eks" {
   name     = "${var.project_name}-eks-${var.environment}"
   role_arn = aws_iam_role.eks_cluster_role.arn

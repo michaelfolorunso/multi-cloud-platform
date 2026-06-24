@@ -16,7 +16,7 @@ REDIS_URL = os.getenv("REDIS_URL", "redis://localhost:6379")
 try:
     cache = redis.from_url(REDIS_URL, decode_responses=True)
     cache.ping()
-except:
+except (redis.RedisError, ConnectionError):
     cache = None
 
 
@@ -46,12 +46,7 @@ def get_projects(db: Session = Depends(get_db)):
 
     if cache:
         cache.setex("projects:all", 300, json.dumps([
-            {
-                "id": p.id,
-                "name": p.name,
-                "description": p.description,
-                "created_at": p.created_at.isoformat()
-            }
+            ProjectResponse.model_validate(p).model_dump(mode="json")
             for p in projects
         ]))
 

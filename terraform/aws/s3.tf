@@ -29,6 +29,8 @@ resource "aws_s3_bucket_versioning" "nexcloud" {
 }
 
 # encrypt everything at rest
+# AES256 uses AWS-managed keys — production would use aws:kms
+# with a customer-managed key for full decryption audit trails
 resource "aws_s3_bucket_server_side_encryption_configuration" "nexcloud" {
   bucket = aws_s3_bucket.nexcloud.id
 

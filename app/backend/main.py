@@ -18,10 +18,12 @@ app = FastAPI(
     redoc_url="/redoc"
 )
 
-# allows the React frontend to talk to the backend
+# wildcard origin for dev — production locks this to the actual frontend domain
+# e.g. allow_origins=["https://app.nexcloud.io"]
+# note: allow_credentials must stay False with wildcard origins — browsers block it otherwise
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=["*"],  # TODO: replace with actual domain before production
     allow_credentials=False,
     allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
     allow_headers=["*"],

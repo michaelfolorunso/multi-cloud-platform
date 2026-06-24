@@ -1,3 +1,6 @@
+# psycopg2-binary for dev convenience —
+# production builds should compile psycopg2 from source to avoid SSL conflicts
+
 fastapi==0.111.0
 uvicorn==0.30.0
 sqlalchemy==2.0.30

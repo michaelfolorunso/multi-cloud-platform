@@ -2,7 +2,7 @@
 
 resource "aws_ecr_repository" "backend" {
   name                 = "nexcloud-backend"
-  image_tag_mutability = "MUTABLE"
+  image_tag_mutability = "IMMUTABLE"
 
   # scans for vulnerabilities on every push, good habit even in dev
   image_scanning_configuration {
@@ -17,7 +17,7 @@ resource "aws_ecr_repository" "backend" {
 
 resource "aws_ecr_repository" "frontend" {
   name                 = "nexcloud-frontend"
-  image_tag_mutability = "MUTABLE"
+  image_tag_mutability = "IMMUTABLE"
 
   image_scanning_configuration {
     scan_on_push = true
@@ -31,7 +31,7 @@ resource "aws_ecr_repository" "frontend" {
 
 resource "aws_ecr_repository" "worker" {
   name                 = "nexcloud-worker"
-  image_tag_mutability = "MUTABLE"
+  image_tag_mutability = "IMMUTABLE"
 
   image_scanning_configuration {
     scan_on_push = true

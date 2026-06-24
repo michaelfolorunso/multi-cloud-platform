@@ -13,7 +13,8 @@ resource "aws_vpc" "nexcloud_vpc" {
   }
 }
 
-# internet gateway — without this nothing in the VPC can reach the internet
+# single NAT gateway for dev — production would run one per AZ
+# to avoid cross-zone NAT traffic and eliminate the AZ single point of failure
 resource "aws_internet_gateway" "nexcloud_igw" {
   vpc_id = aws_vpc.nexcloud_vpc.id
 

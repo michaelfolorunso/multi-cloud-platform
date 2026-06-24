@@ -26,7 +26,8 @@ resource "aws_db_instance" "nexcloud_db" {
   publicly_accessible = false
   skip_final_snapshot = true
 
-  # free tier doesn't allow backup retention — would set to 7 in production
+  # backup retention disabled for dev to stay in free tier —
+  # production minimum is 7 days, regulated industries require 35
   backup_retention_period = 0
   maintenance_window      = "Mon:03:00-Mon:04:00"
 

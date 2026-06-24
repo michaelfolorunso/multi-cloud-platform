@@ -15,8 +15,8 @@ resource "google_storage_bucket" "nexcloud_bucket" {
     }
   }
 
-  # keeps old versions when files get overwritten or deleted
-  # saved me once when a client accidentally deleted everything
+  # versioning protects against accidental deletes and overwrites —
+  # recovery is possible without a full backup restore
   versioning {
     enabled = true
   }

@@ -39,6 +39,9 @@ resource "aws_iam_role" "nexcloud_app_role" {
 }
 
 # OIDC provider — lets EKS pods assume IAM roles securely without static keys
+# thumbprint is the SHA1 of the AWS OIDC root CA certificate —
+# rarely changes but should be verified if OIDC authentication breaks
+# https://docs.aws.amazon.com/eks/latest/userguide/enable-iam-roles-for-service-accounts.html
 resource "aws_iam_openid_connect_provider" "eks" {
   client_id_list  = ["sts.amazonaws.com"]
   thumbprint_list = ["9e99a48a9960b14926bb7f3b02e22da2b0ab7280"]

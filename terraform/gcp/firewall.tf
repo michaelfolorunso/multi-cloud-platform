@@ -1,5 +1,5 @@
-# only opening ports we actually need — least privilege principle
-# no ssh from public internet, internal traffic only
+# broad internal access for dev — in production this would be
+# tightened to only the ports each service actually needs
 
 resource "google_compute_firewall" "allow_internal" {
   name    = "nexcloud-allow-internal-${var.environment}"

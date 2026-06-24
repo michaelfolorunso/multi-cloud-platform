@@ -1,6 +1,6 @@
 from sqlalchemy import Column, Integer, String, Boolean, DateTime, ForeignKey
 from sqlalchemy.orm import relationship
-from datetime import datetime
+from datetime import datetime, timezone
 from database import Base
 
 class Project(Base):
@@ -9,8 +9,7 @@ class Project(Base):
     id          = Column(Integer, primary_key=True, index=True)
     name        = Column(String, nullable=False)
     description = Column(String, nullable=True)
-    created_at  = Column(DateTime, default=datetime.utcnow)
-
+    created_at  = Column(DateTime, default=lambda: datetime.now(timezone.utc))
     # one project has many tasks
     tasks = relationship("Task", back_populates="project", cascade="all, delete-orphan")
 
@@ -23,6 +22,7 @@ class Task(Base):
     description = Column(String, nullable=True)
     completed   = Column(Boolean, default=False)
     project_id  = Column(Integer, ForeignKey("projects.id"), nullable=False)
+    created_at  = Column(DateTime, default=lambda: datetime.now(timezone.utc))
     created_at  = Column(DateTime, default=datetime.utcnow)
 
     # each task belongs to one project

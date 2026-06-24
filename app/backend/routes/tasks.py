@@ -12,10 +12,7 @@ router = APIRouter(prefix="/tasks", tags=["tasks"])
 
 # same redis connection pattern as projectsgraceful fallback if unavailable
 REDIS_URL = os.getenv("REDIS_URL", "redis://localhost:6379")
-try:
-    cache = redis.from_url(REDIS_URL, decode_responses=True)
-    cache.ping()
-except:
+except (redis.RedisError, ConnectionError):
     cache = None
 
 
