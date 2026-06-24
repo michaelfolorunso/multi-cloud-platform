@@ -18,31 +18,7 @@ The goal of this project was to actually run the same application on two clouds 
 
 ## Architecture
 
-```
-                          GitHub Actions
-                       (build, scan, push, deploy)
-                                |
-              -----------------------------------
-              |                                 |
-         AWS (EKS)                         GCP (GKE)
-         VPC, 3 AZs                         VPC, regional subnet
-         public + private subnets          GKE cluster (auto multi-zone)
-         EKS nodes in private subnets      Cloud SQL (private IP only)
-         RDS (private IP only)             Secret Manager
-         NAT gateway                       Artifact Registry
-         ECR
-         Secrets Manager
-         IRSA / OIDC for pod auth
-              |                                 |
-              -----------------------------------
-                                |
-                    Same app, both clouds
-              React -> FastAPI -> Postgres + Redis
-                       Background worker
-                                |
-                      Prometheus -> Grafana
-                       Alertmanager -> Slack
-```
+![NexCloud architecture diagram](docs/diagrams/architecture-diagram.svg)
 
 Both clouds run the same container images, built once per pipeline run and pushed to both registries, then deployed independently. If one cloud's deploy step fails, the other still goes through. More on why that matters below.
 
