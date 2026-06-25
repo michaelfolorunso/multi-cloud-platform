@@ -70,6 +70,8 @@ Prometheus finds pods and nodes through Kubernetes service discovery rather than
 
 Grafana's Prometheus connection is set up automatically through a provisioning file mounted at startup, not clicked together through the UI. That means if the whole monitoring stack got deleted and redeployed from this repo right now, it would come back up fully wired without anyone touching a browser.
 
+![Grafana alert rules, all healthy](docs/screenshots/grafana-alerts.png)
+
 ## Security choices
 
 Both databases sit on private IPs only and are never reachable from the public internet. IAM is scoped tightly: Prometheus can only read cluster metadata, the app's service account can only read its one specific secret, and nodes only have read access to the registries they pull from. AWS pods authenticate through IRSA and OIDC, so there are no long-lived AWS keys sitting inside any pod. Container images run as a non-root user. ECR repositories use immutable tags, so once an image is pushed under a given tag it can't quietly be overwritten by a later push. Storage buckets on both clouds block public access, encrypt data at rest, and keep version history in case something gets deleted by mistake.
