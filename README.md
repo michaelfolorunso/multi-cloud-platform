@@ -8,6 +8,10 @@ The goal of this project was to actually run the same application on two clouds 
 
 **Monitoring dashboard:** http://130.211.231.20 (Grafana, same availability caveat as above)
 
+![TaskFlow Pro projects view](docs/screenshots/taskflow-projects.png)
+
+![TaskFlow Pro task detail view](docs/screenshots/taskflow-tasks.png)
+
 ## What's actually in here
 
 - Terraform for both AWS and GCP, written as separate modules rather than one shared abstraction, because the two clouds don't map onto each other cleanly enough for that to be worth it
